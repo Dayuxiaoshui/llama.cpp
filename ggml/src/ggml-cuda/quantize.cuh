@@ -1,7 +1,9 @@
 #pragma once
 
 #include "common.cuh"
+#ifndef GGML_USE_METAX
 #include "mmq.cuh"
+#endif // GGML_USE_METAX
 
 #include <cstdint>
 

@@ -47,6 +47,7 @@ static __global__ void quantize_q8_1(
     y[ib].ds = make_half2(d, sum);
 }
 
+#ifndef GGML_USE_METAX
 __device__ __forceinline__ uint8_t compute_e8m0_scale(float amax) {
     if (!(amax > 0.0f)) {
         return 0;
@@ -269,6 +270,7 @@ static __global__ void quantize_mmq_q8_1(
         y[ib].d4[iqs/32]  = d;
     }
 }
+#endif // GGML_USE_METAX
 
 void quantize_row_q8_1_cuda(
         const float * x, const int32_t * ids, void * vy, const ggml_type type_src0,
@@ -290,6 +292,12 @@ void quantize_mmq_q8_1_cuda(
         const float * x, const int32_t * ids, void * vy, const ggml_type type_src0,
         const int64_t ne00, const int64_t s01, const int64_t s02, const int64_t s03,
         const int64_t ne0, const int64_t ne1, const int64_t ne2, const int64_t ne3, cudaStream_t stream) {
+#ifdef GGML_USE_METAX
+    GGML_UNUSED(x); GGML_UNUSED(ids); GGML_UNUSED(vy); GGML_UNUSED(type_src0);
+    GGML_UNUSED(ne00); GGML_UNUSED(s01); GGML_UNUSED(s02); GGML_UNUSED(s03);
+    GGML_UNUSED(ne0); GGML_UNUSED(ne1); GGML_UNUSED(ne2); GGML_UNUSED(ne3); GGML_UNUSED(stream);
+    GGML_ABORT("quantize_mmq_q8_1_cuda is not enabled for MetaX");
+#else
     GGML_ASSERT(ne00 % 4 == 0);
     GGML_ASSERT(ne0 % (4*QK8_1) == 0);
 
@@ -314,6 +322,7 @@ void quantize_mmq_q8_1_cuda(
             GGML_ABORT("fatal error");
             break;
     }
+#endif // GGML_USE_METAX
 }
 
 void quantize_mmq_mxfp4_cuda(const float *                    x,
@@ -329,6 +338,12 @@ void quantize_mmq_mxfp4_cuda(const float *                    x,
                              const int64_t                    ne2,
                              const int64_t                    ne3,
                              cudaStream_t                     stream) {
+#ifdef GGML_USE_METAX
+    GGML_UNUSED(x); GGML_UNUSED(ids); GGML_UNUSED(vy); GGML_UNUSED(type_src0);
+    GGML_UNUSED(ne00); GGML_UNUSED(s01); GGML_UNUSED(s02); GGML_UNUSED(s03);
+    GGML_UNUSED(ne0); GGML_UNUSED(ne1); GGML_UNUSED(ne2); GGML_UNUSED(ne3); GGML_UNUSED(stream);
+    GGML_ABORT("quantize_mmq_mxfp4_cuda is not enabled for MetaX");
+#else
     GGML_ASSERT(ne0 % (2 * QK_MXFP4) == 0);
 
     constexpr int nwarps = 8;
@@ -340,4 +355,5 @@ void quantize_mmq_mxfp4_cuda(const float *                    x,
     const dim3    block_size(WARP_SIZE, nwarps, 1);
 
     quantize_mmq_mxfp4<<<num_blocks, block_size, 0, stream>>>(x, ids, vy, ne00, s01, s02, s03, ne0, ne1, ne2);
+#endif // GGML_USE_METAX
 }
