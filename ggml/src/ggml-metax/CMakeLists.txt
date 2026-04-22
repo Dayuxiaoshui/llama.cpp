@@ -50,8 +50,6 @@ list(APPEND GGML_HEADERS_METAX "../ggml-metax/ggml-metax-compat.cuh")
 file(GLOB GGML_SOURCES_METAX "../ggml-cuda/*.cu")
 list(APPEND GGML_SOURCES_METAX "../ggml-metax/ggml-metax-fattn-stubs.cu")
 list(APPEND GGML_SOURCES_METAX "../ggml-metax/quantize.cu")
-list(APPEND GGML_SOURCES_METAX "../ggml-metax/mmq-stubs.cu")
-list(APPEND GGML_SOURCES_METAX "../ggml-metax/mmf-stubs.cu")
 # Start from a conservative kernel set to get MetaX backend compiling.
 # We intentionally exclude CUDA-specific MMA/FATTN/MMQ paths first and
 # can incrementally re-enable with MetaX-native implementations later.
