@@ -20,6 +20,7 @@ static_assert(sizeof(block_q8_1_mmq) == 4*QK8_1 + 4*sizeof(half2), "Unexpected b
 static_assert(sizeof(block_q8_1_mmq) == 4*sizeof(block_q8_1),      "Unexpected block_q8_1_mmq size");
 static_assert(sizeof(block_fp4_mmq)  == sizeof(block_q8_1_mmq),    "Unexpected block_fp4_mmq size");
 
+#ifdef GGML_CUDA_FORCE_CUBLAS
 static inline int get_mmq_y_host(const int cc) {
     GGML_UNUSED(cc);
     return 1;
@@ -37,9 +38,16 @@ static inline bool ggml_cuda_should_use_mmq(enum ggml_type type, int cc, int64_t
     GGML_UNUSED(n_experts);
     return false;
 }
+#else
+// When FORCE_CUBLAS is not set, fall back to the original declarations/definitions.
+// MetaX always defines GGML_CUDA_FORCE_CUBLAS, so this path is not taken.
+static inline int get_mmq_y_host(const int cc);
+static inline int get_mmq_x_max_host(const int cc);
+bool ggml_cuda_should_use_mmq(enum ggml_type type, int cc, int64_t ne11, int64_t n_experts);
+#endif // GGML_CUDA_FORCE_CUBLAS
 
 // Declarations only – the call sites in ggml-cuda.cu are dead-code-eliminated
-// because should_use_mmq() above always returns false, so no definitions are needed.
+// when should_use_mmq() returns false, so no definitions are needed.
 void ggml_cuda_mul_mat_q(
         ggml_backend_cuda_context & ctx, const ggml_tensor * src0, const ggml_tensor * src1, const ggml_tensor * ids, ggml_tensor * dst);
 
