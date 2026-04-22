@@ -49,12 +49,16 @@ list(APPEND GGML_HEADERS_METAX "../ggml-metax/ggml-metax-compat.cuh")
 
 file(GLOB GGML_SOURCES_METAX "../ggml-cuda/*.cu")
 list(APPEND GGML_SOURCES_METAX "../ggml-metax/ggml-metax-fattn-stubs.cu")
+list(APPEND GGML_SOURCES_METAX "../ggml-metax/quantize.cu")
+list(APPEND GGML_SOURCES_METAX "../ggml-metax/mmq-stubs.cu")
+list(APPEND GGML_SOURCES_METAX "../ggml-metax/mmf-stubs.cu")
 # Start from a conservative kernel set to get MetaX backend compiling.
 # We intentionally exclude CUDA-specific MMA/FATTN/MMQ paths first and
 # can incrementally re-enable with MetaX-native implementations later.
-list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/fattn.*\\.cu$")
-list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/mmq.*\\.cu$")
-list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/mmf.*\\.cu$")
+list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/ggml-cuda/fattn.*\\.cu$")
+list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/ggml-cuda/mmq.*\\.cu$")
+list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/ggml-cuda/mmf.*\\.cu$")
+list(FILTER GGML_SOURCES_METAX EXCLUDE REGEX ".*/ggml-cuda/quantize\\.cu$")
 
 set(METAX_NVCC_FLAGS
     -x cu
@@ -67,6 +71,7 @@ set(METAX_NVCC_FLAGS
     ${METAX_CUBRIDGE_INCLUDE}/__macro_mxcc.h
     -I${METAX_CUBRIDGE_INCLUDE}
     -I${MACA_PATH}/include
+    -I${CMAKE_CURRENT_SOURCE_DIR}
     -I${CMAKE_CURRENT_SOURCE_DIR}/..
     -I${CMAKE_CURRENT_SOURCE_DIR}/../..
     -I${CMAKE_CURRENT_SOURCE_DIR}/../../include
@@ -97,6 +102,22 @@ foreach(SOURCE ${GGML_SOURCES_METAX})
     file(RELATIVE_PATH SOURCE_REL "${CMAKE_CURRENT_SOURCE_DIR}" "${SOURCE_ABS}")
     string(REPLACE "/" "_" OBJ_BASENAME "${SOURCE_REL}")
     string(REPLACE "." "_" OBJ_BASENAME "${OBJ_BASENAME}")
+
+    # Patch sources to use MetaX-specific headers that avoid mma.cuh:
+    if(SOURCE_REL MATCHES "ggml-cuda\\.cu$|mmvq\\.cu$")
+        set(PATCHED_CU "${CMAKE_CURRENT_BINARY_DIR}/${OBJ_BASENAME}-patched.cu")
+        file(READ "${SOURCE_ABS}" CU_CONTENT)
+        string(REPLACE "#include \"ggml-cuda/fattn.cuh\"" "#include \"ggml-metax/ggml-cuda/fattn.cuh\"" CU_CONTENT "${CU_CONTENT}")
+        string(REPLACE "#include \"ggml-cuda/mmq.cuh\""    "#include \"ggml-metax/ggml-cuda/mmq.cuh\""    CU_CONTENT "${CU_CONTENT}")
+        string(REPLACE "#include \"ggml-cuda/mmf.cuh\""    "#include \"ggml-metax/ggml-cuda/mmf.cuh\""    CU_CONTENT "${CU_CONTENT}")
+        string(REPLACE "#include \"quantize.cuh\""          "#include \"ggml-metax/ggml-cuda/quantize.cuh\"" CU_CONTENT "${CU_CONTENT}")
+        string(REPLACE "#include \"ggml-cuda/quantize.cuh\"" "#include \"ggml-metax/ggml-cuda/quantize.cuh\"" CU_CONTENT "${CU_CONTENT}")
+        # Fix bare .cuh includes that rely on the source directory being in the include path:
+        string(REGEX REPLACE "#include \"([a-zA-Z0-9_-]+\\.cuh)\"" "#include \"ggml-cuda/\\1\"" CU_CONTENT "${CU_CONTENT}")
+        file(WRITE "${PATCHED_CU}" "${CU_CONTENT}")
+        set(SOURCE_ABS "${PATCHED_CU}")
+    endif()
+
     set(OBJ_FILE "${CMAKE_CURRENT_BINARY_DIR}/metax_objs/${OBJ_BASENAME}.o")
 
     add_custom_command(

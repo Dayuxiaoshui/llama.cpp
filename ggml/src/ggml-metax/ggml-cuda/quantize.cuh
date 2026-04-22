@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.cuh"
+#include "../ggml-cuda/common.cuh"
 #include "mmq.cuh"
 
 #include <cstdint>
