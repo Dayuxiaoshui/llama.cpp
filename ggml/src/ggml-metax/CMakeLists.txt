@@ -45,22 +45,6 @@ set(METAX_CUBRIDGE_INCLUDE "${METAX_CUCC_PATH}/include")
 
 file(GLOB GGML_SOURCES_METAX "../ggml-cuda/*.cu")
 
-# Patch ggml-cuda.cu for MetaX: disable custom kernels that require MMA PTX or have memory issues.
-# This patches the dispatch logic to force all matrix operations to fall back to cublas/mcBLAS.
-set(GGML_CUDA_CU_PATCHED "${CMAKE_CURRENT_BINARY_DIR}/patched/ggml-cuda.cu")
-add_custom_command(
-    OUTPUT "${GGML_CUDA_CU_PATCHED}"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/patched"
-    COMMAND python3 "${CMAKE_CURRENT_SOURCE_DIR}/patch-ggml-cuda-cu.py"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../ggml-cuda/ggml-cuda.cu"
-            "${GGML_CUDA_CU_PATCHED}"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../ggml-cuda/ggml-cuda.cu"
-            "${CMAKE_CURRENT_SOURCE_DIR}/patch-ggml-cuda-cu.py"
-    COMMENT "Patching ggml-cuda.cu for MetaX"
-)
-list(REMOVE_ITEM GGML_SOURCES_METAX "${CMAKE_CURRENT_SOURCE_DIR}/../ggml-cuda/ggml-cuda.cu")
-list(APPEND GGML_SOURCES_METAX "${GGML_CUDA_CU_PATCHED}")
-
 file(GLOB SRCS "../ggml-cuda/template-instances/fattn-tile*.cu")
 list(APPEND GGML_SOURCES_METAX ${SRCS})
 file(GLOB SRCS "../ggml-cuda/template-instances/fattn-mma*.cu")
