@@ -103,14 +103,11 @@
 #define GGML_CUDA_CC_IS_QY2(cc)      (cc >= GGML_CUDA_CC_QY2 && cc < GGML_CUDA_CC_PH1)
 #define GGML_CUDA_CC_IS_PH1(cc)      (cc >= GGML_CUDA_CC_PH1)
 
-static inline bool ggml_cuda_is_metax(int cc) {
 #if defined(GGML_USE_METAX)
-    return true;
+#define GGML_CUDA_CC_IS_METAX(cc) 1
 #else
-    GGML_UNUSED(cc);
-    return false;
+#define GGML_CUDA_CC_IS_METAX(cc) 0
 #endif
-}
 
 #if !defined(GGML_USE_HIP) && !defined(GGML_USE_MUSA) && CUDART_VERSION >= 11070
 #    define GGML_CUDA_USE_CUB

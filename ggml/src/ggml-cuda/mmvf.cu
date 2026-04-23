@@ -777,7 +777,7 @@ void ggml_cuda_op_mul_mat_vec_f(
 }
 
 bool ggml_cuda_should_use_mmvf(enum ggml_type type, int cc, const int64_t * src0_ne, const size_t * src0_nb, int64_t ne11) {
-    if (ggml_cuda_is_metax(cc)) {
+    if (GGML_CUDA_CC_IS_METAX(cc)) {
         return false;
     }
 
